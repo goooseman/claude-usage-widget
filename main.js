@@ -440,7 +440,15 @@ ipcMain.handle('set-window-position', (event, { x, y }) => {
 });
 
 ipcMain.on('open-external', (event, url) => {
-  shell.openExternal(url);
+  const allowedUrls = [
+    'https://paypal.me/SlavomirDurej'
+  ];
+  const isAllowed = allowedUrls.some(allowed => url.startsWith(allowed));
+  if (isAllowed) {
+    shell.openExternal(url);
+  } else {
+    console.warn('Blocked attempt to open unauthorized URL:', url);
+  }
 });
 
 ipcMain.handle('fetch-usage-data', async () => {
