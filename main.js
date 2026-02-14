@@ -59,6 +59,16 @@ function createMainWindow() {
     mainWindow = null;
   });
 
+  // Prevent navigation away from the local widget page
+  mainWindow.webContents.on('will-navigate', (event) => {
+    event.preventDefault();
+  });
+
+  // Block new window creation from the main widget
+  mainWindow.webContents.setWindowOpenHandler(() => {
+    return { action: 'deny' };
+  });
+
   // Development tools
   if (process.env.NODE_ENV === 'development') {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
@@ -78,6 +88,20 @@ function createLoginWindow() {
   });
 
   loginWindow.loadURL('https://claude.ai');
+
+  // Restrict navigation to claude.ai and known OAuth providers
+  const allowedLoginDomains = ['claude.ai', 'accounts.google.com', 'appleid.apple.com', 'login.microsoftonline.com'];
+  loginWindow.webContents.on('will-navigate', (event, url) => {
+    try {
+      const hostname = new URL(url).hostname;
+      if (!allowedLoginDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain))) {
+        event.preventDefault();
+        console.warn('Blocked login window navigation to:', url);
+      }
+    } catch {
+      event.preventDefault();
+    }
+  });
 
   let loginCheckInterval = null;
   let hasLoggedIn = false;
@@ -198,6 +222,20 @@ async function attemptSilentLogin() {
     });
 
     silentLoginWindow.loadURL('https://claude.ai');
+
+    // Restrict navigation to claude.ai and known OAuth providers
+    const allowedLoginDomains = ['claude.ai', 'accounts.google.com', 'appleid.apple.com', 'login.microsoftonline.com'];
+    silentLoginWindow.webContents.on('will-navigate', (event, url) => {
+      try {
+        const hostname = new URL(url).hostname;
+        if (!allowedLoginDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain))) {
+          event.preventDefault();
+          console.warn('Blocked silent login window navigation to:', url);
+        }
+      } catch {
+        event.preventDefault();
+      }
+    });
 
     let loginCheckInterval = null;
     let hasLoggedIn = false;
